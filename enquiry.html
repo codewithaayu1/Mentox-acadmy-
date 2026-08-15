@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admission Enquiry — Mentovix Academy</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  :root{
+    --navy:#0f1642;
+    --red:#e0263a;
+    --gold:#d4af37;
+    --line:#e6e6ee;
+    --text:#1c1f33;
+    --muted:#6b7086;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Arial, sans-serif;
+    background:#f7f7fb;
+    color:var(--text);
+  }
+  header{
+    background:var(--navy);
+    color:#fff;
+    padding:22px 20px;
+    text-align:center;
+  }
+  header h1{
+    margin:0;
+    font-family:Georgia, 'Times New Roman', serif;
+    font-size:26px;
+  }
+  header p{
+    margin:4px 0 0;
+    letter-spacing:2px;
+    font-size:12px;
+    color:var(--gold);
+    text-transform:uppercase;
+  }
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:26px 18px 60px;
+  }
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:26px 22px;
+    box-shadow:0 6px 18px rgba(15,22,66,0.06);
+  }
+  .card h2{
+    margin-top:0;
+    font-size:20px;
+  }
+  .card p.lede{
+    color:var(--muted);
+    margin-top:-6px;
+    font-size:14px;
+  }
+  .field{
+    margin-bottom:16px;
+  }
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  .field input,
+  .field select,
+  .field textarea{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:14px;
+    font-family:inherit;
+  }
+  .field textarea{
+    min-height:80px;
+    resize:vertical;
+  }
+  .btn{
+    width:100%;
+    padding:14px;
+    background:var(--red);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+  }
+  .status-msg{
+    margin-top:14px;
+    font-size:14px;
+    text-align:center;
+  }
+  .status-msg.ok{color:#1a7f37;}
+  .status-msg.err{color:var(--red);}
+  .note{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:10px;
+    text-align:center;
+  }
+  .wa-fallback{
+    display:none;
+    text-align:center;
+    margin-top:16px;
+  }
+  .wa-fallback a{
+    display:inline-block;
+    background:#1ebe57;
+    color:#fff;
+    text-decoration:none;
+    padding:12px 20px;
+    border-radius:8px;
+    font-weight:700;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mentovix Academy</h1>
+  <p>Admission Enquiry</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Start your admission enquiry</h2>
+    <p class="lede">Fill this in — your details go straight to our admissions team and to our WhatsApp.</p>
+
+    <form id="admissionForm">
+      <div class="field">
+        <label for="fname">Full Name *</label>
+        <input type="text" id="fname" required placeholder="Your full name">
+      </div>
+      <div class="field">
+        <label for="fphone">Phone Number *</label>
+        <input type="tel" id="fphone" required placeholder="10-digit mobile number">
+      </div>
+      <div class="field">
+        <label for="finterest">Interested In *</label>
+        <select id="finterest" required>
+          <option value="" disabled selected>Select a category</option>
+          <option>University Courses (UG)</option>
+          <option>University Courses (PG)</option>
+          <option>Professional Courses</option>
+          <option>Board Courses (NIOS/BOSSE)</option>
+          <option>Computer Courses</option>
+          <option>Overseas Jobs/Visa</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fcity">City / District</label>
+        <input type="text" id="fcity" placeholder="e.g. Tinsukia">
+      </div>
+      <div class="field">
+        <label for="fmsg">Message (optional)</label>
+        <textarea id="fmsg" placeholder="Anything specific you'd like to ask?"></textarea>
+      </div>
+
+      <button type="submit" class="btn" id="submitBtn">Send Enquiry</button>
+      <div class="status-msg" id="formStatus"></div>
+      <div class="wa-fallback" id="waFallback">
+        <a id="waLink" href="#" target="_blank" rel="noopener">Open WhatsApp Chat →</a>
+      </div>
+      <p class="note">Your details are saved to our system and emailed to mentovixacademy@gmail.com. After submitting, you'll be redirected to WhatsApp automatically.</p>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ============ Config (same project as main site) ============ */
+const firebaseConfig = {
+  apiKey: "AIzaSyC9huz0TjH1bRrY1rZqubcSKO99d4CxAd4",
+  authDomain: "online-22112.firebaseapp.com",
+  projectId: "online-22112",
+  storageBucket: "online-22112.firebasestorage.app",
+  messagingSenderId: "8438257392",
+  appId: "1:8438257392:web:0956effaaeac0729c0d435"
+};
+
+const EMAILJS_SERVICE_ID = "service_pgcvtxb";
+const EMAILJS_TEMPLATE_ID = "template_itpgdsv";
+const EMAILJS_PUBLIC_KEY = "cAPAaWMISfULIPifqDXwB";
+
+const WHATSAPP_NUMBER = "918822865672"; // country code + number, no + or spaces
+
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+} catch (e) {
+  console.error("Firebase failed to load", e);
+}
+try {
+  if (typeof emailjs !== "undefined") {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  }
+} catch (e) {
+  console.error("EmailJS failed to load", e);
+}
+
+/* Pre-select "Interested In" if arriving from a course page, e.g. enquiry.html?course=University%20Courses%20(UG) */
+(function preselectCourse(){
+  const params = new URLSearchParams(window.location.search);
+  const course = params.get("course");
+  if (course) {
+    const select = document.getElementById("finterest");
+    for (const opt of select.options) {
+      if (opt.value === course) { select.value = course; break; }
+    }
+  }
+})();
+
+/* ============ Form submit ============ */
+document.getElementById("admissionForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const submitBtn = document.getElementById("submitBtn");
+  const statusEl = document.getElementById("formStatus");
+  const waFallback = document.getElementById("waFallback");
+  const waLink = document.getElementById("waLink");
+
+  statusEl.className = "status-msg";
+  statusEl.textContent = "";
+  waFallback.style.display = "none";
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Sending…";
+
+  const name = document.getElementById("fname").value.trim();
+  const phone = document.getElementById("fphone").value.trim();
+  const interest = document.getElementById("finterest").value;
+  const city = document.getElementById("fcity").value.trim();
+  const msg = document.getElementById("fmsg").value.trim();
+
+  // Build the WhatsApp message up front so we can redirect even if email/DB has issues
+  const waText =
+    "New Admission Enquiry\n" +
+    "Name: " + name + "\n" +
+    "Phone: " + phone + "\n" +
+    "Interested In: " + interest + "\n" +
+    "City: " + (city || "-") + "\n" +
+    "Message: " + (msg || "-");
+  const waUrl = "https://wa.me/" + WHATSAPP_NUMBER + "?text=" + encodeURIComponent(waText);
+  waLink.href = waUrl;
+
+  try {
+    // 0) Duplicate check — warn if this number already enquired before
+    if (db && phone) {
+      try {
+        const dupeSnap = await db.collection("enquiries").where("phone", "==", phone).limit(1).get();
+        if (!dupeSnap.empty) {
+          const proceed = confirm("Looks like this phone number already sent an enquiry with us before. Submit again anyway?");
+          if (!proceed) {
+            statusEl.textContent = "";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Send Enquiry";
+            return;
+          }
+        }
+      } catch (dupeErr) {
+        console.warn("Duplicate check skipped:", dupeErr);
+      }
+    }
+
+    // 1) Save to Firestore so it shows up in the admin panel's Enquiries tab
+    if (db) {
+      await db.collection("enquiries").add({
+        name: name,
+        phone: phone,
+        course: interest,
+        city: city,
+        message: msg,
+        photo_url: "",
+        source: "enquiry_page",
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    // 2) Email the admissions team
+    if (typeof emailjs !== "undefined") {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        student_name: name,
+        phone: phone,
+        course: interest,
+        city: city || "—",
+        message: msg || "—",
+        photo_url: "No photo attached"
+      });
+    }
+
+    statusEl.classList.add("ok");
+    statusEl.textContent = "Thanks! Your enquiry has been sent. Redirecting you to WhatsApp…";
+    this.reset();
+
+    // 3) Redirect to WhatsApp
+    setTimeout(function () {
+      window.location.href = waUrl;
+    }, 1200);
+
+    // Also show a manual button in case the auto-redirect is blocked
+    waFallback.style.display = "block";
+
+  } catch (err) {
+    console.error(err);
+    statusEl.classList.add("err");
+    statusEl.textContent = "Something went wrong sending your enquiry. Please tap the WhatsApp button below instead.";
+    waFallback.style.display = "block";
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Send Enquiry";
+  }
+});
+</script>
+
+</body>
+</html>
